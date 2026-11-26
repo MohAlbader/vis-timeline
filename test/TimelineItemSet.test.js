@@ -78,6 +78,7 @@ describe("Timeline ItemSet", () => {
         on: () => {
           return {};
         },
+        off: () => {},
         emit: () => {},
       },
       util: {},
@@ -132,6 +133,63 @@ describe("Timeline ItemSet", () => {
     itemset.setItems(internals.testitems);
     assert.equal(itemset.getItems().length, 2);
     assert.deepEqual(itemset.getItems(), internals.testitems);
+  });
+
+  describe("stacking subgroups", () => {
+    const createItemSet = (order) => {
+      const body = getBasicBody();
+      body.domProps.centerContainer.height = 600;
+      body.range = { body, start: 0, end: 1000 };
+      body.util.toScreen = (time) => Number(time) - body.range.start;
+
+      const itemset = new ItemSet(body, {
+        stack: true,
+        stackSubgroups: true,
+        order,
+      });
+      itemset.setGroups(new DataSet([{ id: "room", subgroupStack: true }]));
+
+      // jsdom does not measure the group width.
+      Object.defineProperty(itemset.groups.room.dom.foreground, "offsetWidth", {
+        value: 1000,
+      });
+
+      // Load the data before the window moves to the bookings.
+      const bookings = [];
+      for (const subgroup of ["a", "b"]) {
+        for (const [suffix, type] of [
+          ["band", "background"],
+          ["first", "range"],
+          ["second", "range"],
+        ]) {
+          bookings.push({
+            id: subgroup + "-" + suffix,
+            group: "room",
+            subgroup,
+            type,
+            start: new Date(2100),
+            end: new Date(2500),
+            content: suffix,
+          });
+        }
+      }
+      itemset.setItems(new DataSet(bookings));
+      body.range.start = 2000;
+      body.range.end = 3000;
+      return itemset;
+    };
+
+    it("should stack newly visible subgroups on the first draw with a custom order", () => {
+      const itemset = createItemSet((a, b) => b.id.localeCompare(a.id));
+      itemset.redraw();
+
+      const { a, b } = itemset.groups.room.subgroups;
+      assert.ok(
+        a.height > 0 && b.top >= a.top + a.height,
+        "subgroup bands must not overlap",
+      );
+      assert.ok(itemset.items["a-second"].top < itemset.items["a-first"].top);
+    });
   });
 
   describe("adding items in the visible range", () => {

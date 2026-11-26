@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Timeline | groups | Custom order within subgroups</title>
+    <script src="../../../standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="../../../styles/vis-timeline-graph2d.min.css"
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      .vis-background.blue {
+        background-color: rgba(75, 122, 210, 0.2);
+      }
+      .vis-background.green {
+        background-color: rgba(58, 157, 92, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Select “Show January bookings” to move from December to January. Both
+      teams should have their own lane as soon as their bookings appear. Each
+      team’s two bookings overlap in time, and the custom order stacks the
+      higher-priority booking first.
+    </p>
+    <button id="show-january">Show January bookings</button>
+    <div id="visualization"></div>
+    <script>
+      const groups = [
+        {
+          id: "room",
+          content: "Study room",
+          subgroupStack: true,
+          subgroupOrder: "lane",
+        },
+      ];
+      const items = [
+        {
+          group: "room",
+          subgroup: "Blue",
+          lane: 0,
+          content: "December booking",
+          priority: 1,
+          start: "2025-12-02",
+          end: "2025-12-05",
+        },
+      ];
+      for (const [lane, team] of ["Blue", "Green"].entries()) {
+        const subgroup = { group: "room", subgroup: team, lane };
+        items.push(
+          {
+            ...subgroup,
+            type: "background",
+            className: team.toLowerCase(),
+            priority: 0,
+            start: "2026-01-05",
+            end: "2026-01-10",
+          },
+          {
+            ...subgroup,
+            content: team + " regular",
+            priority: 1,
+            start: "2026-01-06",
+            end: "2026-01-09",
+          },
+          {
+            ...subgroup,
+            content: team + " high",
+            priority: 2,
+            start: "2026-01-07",
+            end: "2026-01-09",
+          },
+        );
+      }
+      const options = {
+        start: "2025-12-01",
+        end: "2025-12-08",
+        stack: true,
+        stackSubgroups: true,
+        order: (a, b) => b.priority - a.priority,
+      };
+      const timeline = new vis.Timeline(
+        document.getElementById("visualization"),
+        items,
+        groups,
+        options,
+      );
+      document.getElementById("show-january").onclick = () => {
+        timeline.setWindow("2026-01-04", "2026-01-11", { animation: false });
+      };
+    </script>
+  </body>
+</html>
